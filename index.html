@@ -447,6 +447,57 @@
       background: #fff;
     }
 
+
+    .feedback-box {
+      margin-top: 14px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: inset 0 0 0 2px rgba(11,111,149,0.08);
+      display: none;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .traffic-light {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 17px;
+      margin-bottom: 10px;
+    }
+
+    .feedback-list {
+      margin: 0;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .feedback-list li {
+      margin: 8px 0;
+      padding: 9px 10px;
+      border-radius: 12px;
+      background: #f4fbff;
+    }
+
+    .feedback-list .good {
+      color: #0a7a50;
+      border-left: 5px solid #0a7a50;
+    }
+
+    .feedback-list .improve {
+      color: #9b2f23;
+      border-left: 5px solid #c0392b;
+    }
+
+    .source-tip {
+      display: block;
+      font-size: 13px;
+      color: #33596b;
+      margin-top: 3px;
+    }
+
     @media (max-width: 1050px) {
       .slide {
         grid-template-columns: 1fr;
@@ -560,14 +611,20 @@
         </div>
 
         <div class="checklist">
-          <h3>Antes de terminares, verifica se referiste:</h3>
+          <h3>Antes de terminares, tenta melhorar a tua resposta:</h3>
           <ul>
-            <li>a Coroa Portuguesa;</li>
-            <li>a Casa da Índia;</li>
-            <li>a chegada e o controlo das mercadorias;</li>
-            <li>as receitas e o reforço do poder régio.</li>
+            <li>Vai além da estrutura básica construída em aula;</li>
+            <li>explica o papel de Lisboa, da Coroa e da Casa da Índia;</li>
+            <li>refere como as mercadorias eram controladas;</li>
+            <li>indica o destino dos produtos e a importância da reexportação.</li>
           </ul>
         </div>
+
+        <div class="modal-actions">
+          <button class="primary" id="checkBtn" type="button">Verificar resposta</button>
+        </div>
+
+        <div class="feedback-box" id="feedbackBox" aria-live="polite"></div>
 
         <div class="sources-box">
           <h3>Consulta novamente as fontes da questão orientadora:</h3>
@@ -733,6 +790,91 @@
       const subject = encodeURIComponent('Síntese final — Comércio ultramarino português');
       const body = encodeURIComponent(buildText());
       window.location.href = 'mailto:' + emailDestino + '?subject=' + subject + '&body=' + body;
+    });
+
+
+    // VERIFICAÇÃO COM SEMÁFORO
+    const checkBtn = document.getElementById('checkBtn');
+    const feedbackBox = document.getElementById('feedbackBox');
+
+    function normalizeText(value) {
+      return value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '');
+    }
+
+    function hasAny(text, terms) {
+      return terms.some(term => text.includes(term));
+    }
+
+    checkBtn.addEventListener('click', () => {
+      const texto = normalizeText(sintese.value);
+      let pontos = 0;
+      const itens = [];
+
+      function addItem(ok, goodText, improveText, sourceText) {
+        if (ok) {
+          pontos++;
+          itens.push(`<li class="good">✔ ${goodText}</li>`);
+        } else {
+          itens.push(`<li class="improve">✘ ${improveText}<span class="source-tip">Fonte a consultar: ${sourceText}</span></li>`);
+        }
+      }
+
+      addItem(
+        hasAny(texto, ['lisboa']),
+        'Referiste Lisboa como centro de receção e redistribuição.',
+        'Podes reforçar o papel de Lisboa como centro do comércio.',
+        'F5 e F7'
+      );
+
+      addItem(
+        hasAny(texto, ['coroa', 'rei', 'poder regio', 'regio']),
+        'Identificaste a Coroa / o poder régio.',
+        'Explica quem controlava politicamente este comércio.',
+        'F10'
+      );
+
+      addItem(
+        hasAny(texto, ['casa da india']),
+        'Referiste a Casa da Índia.',
+        'Indica a instituição responsável pela organização e controlo do comércio.',
+        'F10'
+      );
+
+      addItem(
+        hasAny(texto, ['controlo', 'controlado', 'controlava', 'pesagem', 'pesadas', 'pesados', 'registo', 'registadas', 'registados', 'moedas', 'precos', 'precos definidos', 'medidas']),
+        'Explicaste o controlo das mercadorias.',
+        'Explica como as mercadorias eram controladas: pesagem, registo, preços, moedas ou medidas.',
+        'F8 e F9'
+      );
+
+      addItem(
+        hasAny(texto, ['reexport', 'europa', 'europeus', 'antuerpia', 'flandres', 'vendidos', 'venda']),
+        'Referiste a reexportação / venda para a Europa.',
+        'Explica o destino dos produtos depois de chegarem a Lisboa.',
+        'F6'
+      );
+
+      addItem(
+        hasAny(texto, ['receitas', 'impostos', 'lucros', 'rendimento', 'reforco do poder', 'poder regio']),
+        'Referiste as receitas ou o reforço do poder régio.',
+        'Podes explicar a importância económica e política deste comércio para a Coroa.',
+        'F10'
+      );
+
+      let semaforo = '';
+      if (pontos >= 5) {
+        semaforo = `<div class="traffic-light" style="color:#0a7a50;">🟢 Resposta completa — está bem encaminhada</div>`;
+      } else if (pontos >= 3) {
+        semaforo = `<div class="traffic-light" style="color:#e67e22;">🟡 Quase completa — revê as pistas e melhora</div>`;
+      } else {
+        semaforo = `<div class="traffic-light" style="color:#c0392b;">🔴 Precisa de melhorar — volta às fontes indicadas</div>`;
+      }
+
+      feedbackBox.style.display = 'block';
+      feedbackBox.innerHTML = semaforo + `<ul class="feedback-list">${itens.join('')}</ul>`;
     });
 
     // MODAL DAS FONTES
